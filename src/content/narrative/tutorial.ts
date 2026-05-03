@@ -1,5 +1,4 @@
-// 튜토리얼(=챕터 0). TutorialScene 이 순서대로 보여주고 챕터 1 으로 진입.
-// 데모: 학교 호러 컨셉의 짧은 안내.
+// 잔류 — 튜토리얼 (=0구역 진입 안내).
 
 export interface TutorialStep {
   id: string;
@@ -11,12 +10,12 @@ export const tutorialSteps: TutorialStep[] = [
   {
     id: 'move',
     title: '이동',
-    prompt: '↑ ↓ ← → 또는 W A S D 또는 vi-keys (h j k l) 로 복도를 따라 이동합니다. 마침표(.)로 한 박자 멈춰 듣기.',
+    prompt: '↑ ↓ ← → 또는 W A S D 로 역사 안을 이동합니다. 마침표(.)로 한 박자 멈춰 듣기.',
   },
   {
     id: 'interact',
-    title: '상호작용',
-    prompt: 'e 로 게시판·메모·교내 방송기를 확인합니다. g 로 책상이나 사물함 안의 물건을 줍습니다.',
+    title: '안내 확인',
+    prompt: 'e 로 전광판·역무실 창·메모를 확인합니다. g 로 떨어진 물건을 줍습니다.',
   },
   {
     id: 'use',
@@ -26,16 +25,16 @@ export const tutorialSteps: TutorialStep[] = [
   {
     id: 'hide',
     title: '은신',
-    prompt: 'c 로 사물함이나 책상 밑에 숨습니다. 들키지 않으면 발걸음이 지나갈 때까지 기다릴 수 있습니다.',
+    prompt: 'c 로 기둥 뒤·역무실 안으로 몸을 숨깁니다. 들키지 않으면 발걸음이 지나갈 때까지 기다릴 수 있습니다.',
   },
   {
     id: 'exit',
-    title: '탈출',
-    prompt: '> 로 비상구·계단·열린 출구를 빠져나갑니다. 들키지 않고 도달하는 것이 목표.',
+    title: '다음 구역',
+    prompt: '> 로 계단·통로·비상구를 빠져나갑니다. 들키지 않고 도달하는 것이 목표.',
   },
   {
     id: 'goal',
     title: '시작',
-    prompt: '학교 1층. Enter 로 시작합니다.',
+    prompt: '역사 입구. Enter 로 시작합니다.',
   },
 ];

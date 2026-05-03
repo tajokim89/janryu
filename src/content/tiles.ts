@@ -1,9 +1,6 @@
-// 타일 정의. mapgen 이 이걸 참조해 GridMap 채움.
-// 새 타일 추가: 객체 push, spritesheet 에 프레임 추가.
-//
-// 호러 탐험 보일러플레이트:
-//  - hidesPlayer: 이 타일 위에서 'hide' 의도가 있으면 추적자 시야에서 사라짐 (락커/구석)
-//  - trigger:     플레이어가 진입할 때 발생할 환경 이벤트 id (narrative/events.ts 와 매칭)
+// 잔류 — 침수된 지하철역 타일.
+// 핵심: 물은 수위 상승보다 공간 잠식. flooded 는 못 지나감, shallow-water 는 지나갈 수 있다.
+// hidesPlayer 는 추적이 시작되는 2구역 이후에서만 의미가 있다.
 
 export interface TileDef {
   id: string;
@@ -15,11 +12,17 @@ export interface TileDef {
 }
 
 export const tiles: TileDef[] = [
-  { id: 'floor',       walkable: true,  transparent: true,  hidesPlayer: false, sprite: 'tile-floor' },
-  { id: 'wall',        walkable: false, transparent: false, hidesPlayer: false, sprite: 'tile-wall' },
-  { id: 'door',        walkable: true,  transparent: false, hidesPlayer: false, sprite: 'tile-door' },
-  { id: 'locker',      walkable: true,  transparent: false, hidesPlayer: true,  sprite: 'tile-locker' },
-  { id: 'desk-under',  walkable: true,  transparent: true,  hidesPlayer: true,  sprite: 'tile-desk' },
-  { id: 'stairs-down', walkable: true,  transparent: true,  hidesPlayer: false, sprite: 'tile-stairs-down' },
-  { id: 'exit',        walkable: true,  transparent: true,  hidesPlayer: false, sprite: 'tile-exit' },
+  { id: 'floor',         walkable: true,  transparent: true,  hidesPlayer: false, sprite: 'tile-floor' },
+  { id: 'wall',          walkable: false, transparent: false, hidesPlayer: false, sprite: 'tile-wall' },
+  { id: 'pillar',        walkable: false, transparent: false, hidesPlayer: false, sprite: 'tile-pillar' },
+  { id: 'ticket-gate',   walkable: true,  transparent: true,  hidesPlayer: false, sprite: 'tile-ticket-gate' },
+  { id: 'sealed-door',   walkable: false, transparent: false, hidesPlayer: false, sprite: 'tile-sealed-door' },
+  { id: 'wet-floor',     walkable: true,  transparent: true,  hidesPlayer: false, sprite: 'tile-wet-floor' },
+  { id: 'shallow-water', walkable: true,  transparent: true,  hidesPlayer: false, sprite: 'tile-shallow-water' },
+  { id: 'flooded',       walkable: false, transparent: true,  hidesPlayer: false, sprite: 'tile-flooded' },
+  { id: 'station-room',  walkable: true,  transparent: true,  hidesPlayer: true,  sprite: 'tile-station-room' },
+  { id: 'pillar-corner', walkable: true,  transparent: true,  hidesPlayer: true,  sprite: 'tile-pillar-corner' },
+  { id: 'platform-edge', walkable: false, transparent: true,  hidesPlayer: false, sprite: 'tile-platform-edge' },
+  { id: 'stairs-down',   walkable: true,  transparent: true,  hidesPlayer: false, sprite: 'tile-stairs-down' },
+  { id: 'exit',          walkable: true,  transparent: true,  hidesPlayer: false, sprite: 'tile-exit' },
 ];

@@ -1,5 +1,8 @@
-// 추적자 정의. 보일러플레이트 호러 컨셉 — 전투 X.
-// 데모: 학교 1층 — 야간 복도의 두 형상.
+// 잔류 — 추적자.
+// 0~1구역: 없음. 위화감과 안내만.
+// 2구역: 첫 추적 (젖은 실루엣 — 맞은편 승강장에서 다가옴).
+// 3구역: 검은 형체 (반복 통로에서 출현).
+// 4구역: 분류 신호 자체가 추적자처럼 작동.
 
 export type StalkerBehavior =
   | 'idle'
@@ -29,27 +32,39 @@ export interface StalkerDef {
 
 export const stalkers: StalkerDef[] = [
   {
-    id: 'late-pupil',
-    name: '늦은 학생',
-    sprite: 'stalker-late-pupil',
-    speed: 80,
+    id: 'wet-silhouette',
+    name: '젖은 실루엣',
+    sprite: 'stalker-wet-silhouette',
+    speed: 60,
     detectionRange: 4,
     loseInterestRange: 10,
-    hearing: 4,
+    hearing: 3,
     behavior: 'wander',
-    catchEffect: { kind: 'restart-zone' },
+    catchEffect: { kind: 'flag', id: 'contamination-caught-by-silhouette' },
     spawnWeight: 5,
   },
   {
-    id: 'silent-teacher',
-    name: '조용한 교사',
-    sprite: 'stalker-silent-teacher',
-    speed: 0,
-    detectionRange: 9,
+    id: 'dark-figure',
+    name: '검은 형체',
+    sprite: 'stalker-dark-figure',
+    speed: 80,
+    detectionRange: 5,
+    loseInterestRange: 9,
+    hearing: 4,
+    behavior: 'sound-driven',
+    catchEffect: { kind: 'flag', id: 'contamination-caught-by-figure' },
+    spawnWeight: 5,
+  },
+  {
+    id: 'classification-signal',
+    name: '분류 신호',
+    sprite: 'stalker-classification-signal',
+    speed: 40,
+    detectionRange: 8,
     loseInterestRange: 0,
     hearing: 0,
     behavior: 'idle',
-    catchEffect: { kind: 'sanity', amount: 1 },
+    catchEffect: { kind: 'flag', id: 'classification-completed' },
     spawnWeight: 0,
   },
 ];

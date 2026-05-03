@@ -44,6 +44,7 @@ import type { GameSnapshot } from '../state';
 
 export interface GameSceneOptions {
   chapterId: string;
+  zoneIndex?: number;
   snapshot?: GameSnapshot;
 }
 
@@ -99,8 +100,10 @@ export class GameScene implements Scene {
   private narrative!: NarrativeSystem;
   private endingUnsub: (() => void) | null = null;
   private codexUnsub: (() => void) | null = null;
+  private messageUnsub: (() => void) | null = null;
   private playerFacing: 'down' | 'up' | 'left' | 'right' = 'down';
   private currentZoneId = '';
+  private zoneIndex = 0;
   // sprites
   private player!: Sprite;
   private stalker!: Sprite;
@@ -121,7 +124,15 @@ export class GameScene implements Scene {
   async enter(ctx: SceneContext): Promise<void> {
     this.ctx = ctx;
     this.chapter = chapters.find((c) => c.id === this.options.chapterId) ?? chapters[0]!;
-    const zone = zonesForChapter(this.chapter)[0];
+    const zonesInChapter = zonesForChapter(this.chapter);
+    let zoneIdx = this.options.zoneIndex ?? 0;
+    if (this.options.snapshot) {
+      const found = zonesInChapter.findIndex((z) => z.id === this.options.snapshot!.zoneId);
+      if (found >= 0) zoneIdx = found;
+    }
+    if (zoneIdx < 0 || zoneIdx >= zonesInChapter.length) zoneIdx = 0;
+    this.zoneIndex = zoneIdx;
+    const zone = zonesInChapter[zoneIdx];
 
     ctx.world.addChild(this.worldRoot);
     ctx.ui.addChild(this.uiRoot);
@@ -150,7 +161,7 @@ export class GameScene implements Scene {
       return def ? def.transparent : false;
     });
     this.narrative = new NarrativeSystem(ctx.events);
-    this.narrative.recordFact(`enterZone:${this.currentZoneId}`);
+    // recordFact 는 이벤트 리스너가 모두 연결되고 snapshot 복원이 끝난 뒤 호출 (enter() 끝부분).
 
     // === World sprites ===
     this.buildTileSprites();
@@ -187,6 +198,9 @@ export class GameScene implements Scene {
       const entry = codexEntries.find((c) => c.id === id);
       this.message.text = `[코덱스] '${entry?.title ?? id}' 잠금해제.`;
     });
+    this.messageUnsub = ctx.events.on('message', ({ text }) => {
+      this.message.text = text;
+    });
 
     // === Snapshot 복원 (있으면 위 기본값을 덮어씀) ===
     if (this.options.snapshot) {
@@ -200,16 +214,19 @@ export class GameScene implements Scene {
     this.applyVisibility();
     this.layout();
     this.renderHud();
-    if (!this.options.snapshot) {
+    if (!this.options.snapshot && this.zoneIndex === 0) {
       ctx.events.emit('message', { text: this.chapter.intro, tone: 'warn' });
-    } else {
+    } else if (this.options.snapshot) {
       this.message.text = '저장된 진행 상황을 불러왔다.';
     }
+    // Zone 진입 fact 기록 — 리스너 + 인트로 메시지 후 호출하여 zone 별 메시지가 chapter.intro 위에 덮이도록.
+    this.narrative.recordFact(`enterZone:${this.currentZoneId}`);
   }
 
   exit(): void {
     this.endingUnsub?.();
     this.codexUnsub?.();
+    this.messageUnsub?.();
     this.narrative.destroy();
     this.ctx.world.removeChild(this.worldRoot);
     this.ctx.ui.removeChild(this.uiRoot);
@@ -358,17 +375,31 @@ export class GameScene implements Scene {
     const here = this.tileAt(this.playerX, this.playerY);
     if (here === 'exit') {
       this.endingTriggered = true;
-      this.ctx.events.emit('zoneExit', { fromZone: 'zone-school-1f', toZone: null, mode: 'escape' });
-      void this.ctx.manager.replace(new EndingScene({ endingId: 'placeholder' }));
+      this.ctx.events.emit('zoneExit', { fromZone: this.currentZoneId, toZone: null, mode: 'escape' });
+      void this.ctx.manager.replace(new EndingScene({ endingId: this.decideEndingId() }));
       return;
     }
     if (here === 'stairs-down') {
+      const zonesInChapter = zonesForChapter(this.chapter);
+      const nextIdx = this.zoneIndex + 1;
+      const nextZone = zonesInChapter[nextIdx];
       this.endingTriggered = true;
-      this.ctx.events.emit('zoneExit', { fromZone: 'zone-school-1f', toZone: null, mode: 'descend' });
-      void this.ctx.manager.replace(new EndingScene({ endingId: 'placeholder' }));
+      if (nextZone) {
+        this.ctx.events.emit('zoneExit', { fromZone: this.currentZoneId, toZone: nextZone.id, mode: 'descend' });
+        void this.ctx.manager.replace(new GameScene({ chapterId: this.chapter.id, zoneIndex: nextIdx }));
+      } else {
+        this.ctx.events.emit('zoneExit', { fromZone: this.currentZoneId, toZone: null, mode: 'descend' });
+        void this.ctx.manager.replace(new EndingScene({ endingId: this.decideEndingId() }));
+      }
       return;
     }
     this.message.text = '여기는 출구가 아니다.';
+  }
+
+  private decideEndingId(): string {
+    // 향후 narrative.flags / facts 기반 5엔딩 분기. 현재는 'escape' 기본.
+    // caught 는 narrative event(caught-anywhere) 가 ending 이벤트로 별도 처리.
+    return 'escape';
   }
 
   private tryInteract(): void {

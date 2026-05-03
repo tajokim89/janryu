@@ -49,7 +49,7 @@ describe('NarrativeSystem', () => {
     bus.on('codexUnlocked', ({ id }) => {
       unlockedId = id;
     });
-    bus.emit('broadcastHeard', { id: 'bc-school-pa' });
-    expect(unlockedId).toBe('codex-shadow-line');
+    bus.emit('broadcastHeard', { id: 'bc-flood-warning' });
+    expect(unlockedId).toBe('codex-mismatched-rules');
   });
 });

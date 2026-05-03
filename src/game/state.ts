@@ -31,10 +31,19 @@ export interface GameSnapshot {
     flags: Record<string, boolean>;
     fired: string[];
     unlockedCodex: string[];
+    turnCount?: number;
   };
   fov: {
     explored: string[];
   };
   savedAtIso: string;
   label: string;
+}
+
+// zone 간 이동 시 다음 GameScene 으로 넘기는 carry-over.
+// player/stalker/fov 는 새 zone 의 default 를 사용 — 아이템·손전등·내러티브만 유지.
+export interface ZoneCarry {
+  inventory: string[];
+  flashlight: GameSnapshot['flashlight'];
+  narrative: GameSnapshot['narrative'];
 }

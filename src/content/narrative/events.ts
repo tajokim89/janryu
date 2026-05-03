@@ -42,6 +42,33 @@ export const narrativeEvents: NarrativeEvent[] = [
     then: [{ kind: 'message', text: '23:42. 출구 위 통제문이 내려오고 있다.', tone: 'warn' }],
     once: true,
   },
+  // 0구역 — 5턴 이상 머무르면 운행 종료 안내방송이 자동 흘러나옴.
+  {
+    id: 'auto-bc-end-of-service',
+    trigger: { kind: 'and', all: [
+      { kind: 'enterZone', zoneId: 'zone-station-0' },
+      { kind: 'turnGte', value: 5 },
+    ]},
+    then: [{ kind: 'playBroadcast', broadcastId: 'bc-end-of-service' }],
+    once: true,
+  },
+  // 0구역 — 젖은 바닥 첫 진입 시 ambient 메시지.
+  {
+    id: 'wet-floor-first-touch',
+    trigger: { kind: 'and', all: [
+      { kind: 'enterZone', zoneId: 'zone-station-0' },
+      { kind: 'enterTile', tileId: 'wet-floor' },
+    ]},
+    then: [{ kind: 'message', text: '바닥이 젖어 있다. 안쪽에서 발자국이 지나간 자국.', tone: 'info' }],
+    once: true,
+  },
+  // 0구역 — 통제문(sealed-door) 가까이 가면 간접 메시지 (실제 sealed-door 위엔 못 서므로 인접한 floor 트리거 대용은 향후).
+  {
+    id: 'shutter-noticed',
+    trigger: { kind: 'documentRead', documentId: 'doc-station-office-empty' },
+    then: [{ kind: 'message', text: '뒤에서 통제문이 한 단계 더 내려오는 소리가 들린다.', tone: 'warn' }],
+    once: true,
+  },
   {
     id: 'station-office-empty-read',
     trigger: { kind: 'documentRead', documentId: 'doc-station-office-empty' },
@@ -63,6 +90,16 @@ export const narrativeEvents: NarrativeEvent[] = [
     id: 'enter-station-1',
     trigger: { kind: 'enterZone', zoneId: 'zone-station-1' },
     then: [{ kind: 'message', text: '대합실. 안내문이 벽 한 면을 채우고 있다.', tone: 'warn' }],
+    once: true,
+  },
+  // 1구역 — 진입 직후 침수 안내방송 자동 재생.
+  {
+    id: 'auto-bc-flood-warning',
+    trigger: { kind: 'and', all: [
+      { kind: 'enterZone', zoneId: 'zone-station-1' },
+      { kind: 'turnGte', value: 3 },
+    ]},
+    then: [{ kind: 'playBroadcast', broadcastId: 'bc-flood-warning' }],
     once: true,
   },
   {
@@ -135,6 +172,16 @@ export const narrativeEvents: NarrativeEvent[] = [
     id: 'enter-station-4',
     trigger: { kind: 'enterZone', zoneId: 'zone-station-4' },
     then: [{ kind: 'message', text: '폐쇄 선로 아래. 중앙 전광판이 두 가지 안내를 번갈아 띄운다.', tone: 'danger' }],
+    once: true,
+  },
+  // 4구역 — 진입 직후 분류 안내방송 자동 재생.
+  {
+    id: 'auto-bc-classification',
+    trigger: { kind: 'and', all: [
+      { kind: 'enterZone', zoneId: 'zone-station-4' },
+      { kind: 'turnGte', value: 2 },
+    ]},
+    then: [{ kind: 'playBroadcast', broadcastId: 'bc-classification' }],
     once: true,
   },
   {

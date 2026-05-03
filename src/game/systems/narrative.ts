@@ -12,7 +12,7 @@
 //   - setFlag       → 내부 flags 갱신 + events.emit('flagSet')
 //   - goEnding      → events.emit('ending') — GameScene 이 받아서 EndingScene 으로 전환
 //
-// 다음 단계 미구현(데이터만 받아둠): lightsOut, noise, spawnStalker, openDocument, playBroadcast.
+// 다음 단계 미구현(데이터만 받아둠): lightsOut, noise, spawnStalker, openDocument.
 // 저런 건 zone/world 조작이 필요해서 GameScene 의 협력자가 필요. 먼저 데이터/타입은 살려둠.
 
 import type { EventBus } from '@/engine';
@@ -22,12 +22,14 @@ import {
   type Effect,
   type NarrativeEvent,
 } from '@/content/narrative/events';
+import { broadcasts } from '@/content/narrative/broadcasts';
 
 export class NarrativeSystem {
   private facts = new Set<string>();
   private flags: Record<string, boolean> = {};
   private fired = new Set<string>();
   private unlockedCodex = new Set<string>();
+  private turnCount = 0;
   private events: EventBus;
   private unsubs: Array<() => void> = [];
 
@@ -58,12 +60,14 @@ export class NarrativeSystem {
     flags: Record<string, boolean>;
     fired: string[];
     unlockedCodex: string[];
+    turnCount: number;
   } {
     return {
       facts: [...this.facts],
       flags: { ...this.flags },
       fired: [...this.fired],
       unlockedCodex: [...this.unlockedCodex],
+      turnCount: this.turnCount,
     };
   }
 
@@ -72,11 +76,13 @@ export class NarrativeSystem {
     flags: Record<string, boolean>;
     fired: string[];
     unlockedCodex: string[];
+    turnCount?: number;
   }): void {
     this.facts = new Set(snapshot.facts);
     this.flags = { ...snapshot.flags };
     this.fired = new Set(snapshot.fired);
     this.unlockedCodex = new Set(snapshot.unlockedCodex);
+    this.turnCount = snapshot.turnCount ?? 0;
   }
 
   // 외부에서 직접 사실을 등록할 수도 있게 노출 (예: enterTile, enterZone, turnGte 같은 GameScene 컨텍스트).
@@ -96,6 +102,11 @@ export class NarrativeSystem {
       this.events.on('broadcastHeard', ({ id }) => this.recordFact(`broadcastHeard:${id}`)),
       this.events.on('signRead', ({ id }) => this.recordFact(`signRead:${id}`)),
       this.events.on('zoneExit', ({ fromZone }) => this.recordFact(`zoneExit:${fromZone}`)),
+      // 매 step 마다 turnCount 증가 + 평가 — turnGte 같은 시간 기반 트리거가 작동하게.
+      this.events.on('step', () => {
+        this.turnCount += 1;
+        this.evaluate();
+      }),
     );
   }
 
@@ -127,8 +138,7 @@ export class NarrativeSystem {
       case 'flag':
         return this.flags[cond.id] === (cond.value ?? true);
       case 'turnGte':
-        // 보일러플레이트엔 글로벌 turn 카운터 미구현. 항상 false.
-        return false;
+        return this.turnCount >= cond.value;
       case 'and':
         return cond.all.every((c) => this.matches(c));
       case 'or':
@@ -167,12 +177,21 @@ export class NarrativeSystem {
       case 'goEnding':
         this.events.emit('ending', { id: eff.endingId });
         return;
-      // 미구현 효과는 메시지만 흘려보냄 (디버그용).
+      case 'playBroadcast': {
+        const bc = broadcasts.find((b) => b.id === eff.broadcastId);
+        if (!bc) return;
+        // 안내방송 본문을 메시지로 흘려 보냄. tone='warn' 으로 강조.
+        const text = `[${bc.source}]\n${bc.lines.join('\n')}`;
+        this.events.emit('message', { text, tone: 'warn' });
+        // broadcastHeard 사실 등록 — 후속 narrative 이벤트(코덱스 잠금해제 등) 가 연쇄 발화.
+        this.events.emit('broadcastHeard', { id: eff.broadcastId });
+        return;
+      }
+      // 미구현 효과는 디버그 로그만.
       case 'lightsOut':
       case 'noise':
       case 'spawnStalker':
       case 'openDocument':
-      case 'playBroadcast':
         console.info(`[narrative] effect not yet implemented: ${eff.kind}`);
         return;
     }

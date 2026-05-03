@@ -41,12 +41,13 @@ import { ReaderScene } from './ReaderScene';
 import { PauseScene } from './PauseScene';
 import { CodexScene } from './CodexScene';
 import { InventoryScene } from './InventoryScene';
-import type { GameSnapshot } from '../state';
+import type { GameSnapshot, ZoneCarry } from '../state';
 
 export interface GameSceneOptions {
   chapterId: string;
   zoneIndex?: number;
-  snapshot?: GameSnapshot;
+  snapshot?: GameSnapshot;  // full restore (load from save)
+  carry?: ZoneCarry;        // partial carry-over (zone 간 이동)
 }
 
 type State = 'safe' | 'spotted' | 'hidden';
@@ -208,9 +209,11 @@ export class GameScene implements Scene {
       this.message.text = text;
     });
 
-    // === Snapshot 복원 (있으면 위 기본값을 덮어씀) ===
+    // === Snapshot/Carry 복원 (있으면 위 기본값을 덮어씀) ===
     if (this.options.snapshot) {
       this.applySnapshot(this.options.snapshot);
+    } else if (this.options.carry) {
+      this.applyCarry(this.options.carry);
     }
 
     // === First frame ===
@@ -340,6 +343,8 @@ export class GameScene implements Scene {
     this.evaluateContact();
     this.renderHud();
     this.ctx.events.emit('step', { x: nx, y: ny });
+    // 이 칸의 타일을 enterTile fact 로 등록 — narrative event 가 enterTile 트리거를 매치할 수 있도록.
+    this.narrative.recordFact(`enterTile:${this.tileAt(nx, ny)}`);
   }
 
   private tryHide(): void {
@@ -392,7 +397,17 @@ export class GameScene implements Scene {
       this.endingTriggered = true;
       if (nextZone) {
         this.ctx.events.emit('zoneExit', { fromZone: this.currentZoneId, toZone: nextZone.id, mode: 'descend' });
-        void this.ctx.manager.replace(new GameScene({ chapterId: this.chapter.id, zoneIndex: nextIdx }));
+        const carry: ZoneCarry = {
+          inventory: [...this.inventory],
+          flashlight: {
+            acquired: this.flashlightAcquired,
+            on: this.flashlightOn,
+            battery: this.flashlightBattery,
+            capacity: this.flashlightCapacity,
+          },
+          narrative: this.narrative.serialize(),
+        };
+        void this.ctx.manager.replace(new GameScene({ chapterId: this.chapter.id, zoneIndex: nextIdx, carry }));
       } else {
         this.ctx.events.emit('zoneExit', { fromZone: this.currentZoneId, toZone: null, mode: 'descend' });
         void this.ctx.manager.replace(new EndingScene({ endingId: this.decideEndingId() }));
@@ -780,6 +795,20 @@ export class GameScene implements Scene {
       savedAtIso: new Date().toISOString(),
       label: `${this.chapter.title}`,
     };
+  }
+
+  private applyCarry(c: ZoneCarry): void {
+    // 인벤토리 + 그 위치의 맵 위 sprite 제거 (이전 zone 에서 이미 주운 것).
+    this.inventory = new Set(c.inventory);
+    for (const id of c.inventory) {
+      const inst = this.propsOnMap.find((p) => p.id === id);
+      if (inst) this.removePropFromMap(inst);
+    }
+    this.flashlightAcquired = c.flashlight.acquired;
+    this.flashlightOn = c.flashlight.on;
+    this.flashlightBattery = c.flashlight.battery;
+    this.flashlightCapacity = c.flashlight.capacity;
+    this.narrative.restore(c.narrative);
   }
 
   private applySnapshot(s: GameSnapshot): void {

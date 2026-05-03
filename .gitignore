@@ -1,5 +1,6 @@
 # OMC (oh-my-claudecode) state
 .omc/
+.omx/
 
 # Claude Code local settings
 .claude/settings.local.json

@@ -1,0 +1,41 @@
+{
+  "id": "zone-school-1f",
+  "name": "School 1F — Night",
+  "_comment": "데모 authored map. zones.ts 의 generator='authored' + authoredMap 으로 참조. GameScene 이 fetch 해서 그대로 깐다.",
+  "width": 18,
+  "height": 11,
+  "legend": {
+    ".": "floor",
+    "#": "wall",
+    "D": "door",
+    "L": "locker",
+    "T": "desk-under",
+    ">": "stairs-down",
+    "E": "exit"
+  },
+  "tiles": [
+    "##################",
+    "#................#",
+    "#..LLLL..........#",
+    "#................#",
+    "#......>.........#",
+    "#......TT........#",
+    "#................#",
+    "#............TT..#",
+    "#................#",
+    "#..............E.#",
+    "##################"
+  ],
+  "spawns": {
+    "player": { "x": 2, "y": 1 },
+    "stalkers": [{ "id": "late-pupil", "x": 15, "y": 1 }],
+    "props": [
+      { "id": "flashlight", "x": 2, "y": 9 },
+      { "id": "note",        "x": 5, "y": 6 },
+      { "id": "blackboard",  "x": 8, "y": 4 },
+      { "id": "pa-radio",    "x": 12, "y": 1 },
+      { "id": "sign",        "x": 16, "y": 9 },
+      { "id": "student-id",  "x": 10, "y": 6 }
+    ]
+  }
+}

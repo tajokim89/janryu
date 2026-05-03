@@ -19,6 +19,7 @@
 //   6) 잡힘 → caught 엔딩, 탈출 → escape 엔딩
 
 import { AnimatedSprite, Container, Graphics, Sprite, Text } from 'pixi.js';
+import * as ROT from 'rot-js';
 import type { Scene, SceneContext, Intent } from '@/engine';
 import { FONT_BODY, FONT_MONO, COLOR, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, TILE_SIZE } from '@/engine';
 import { chapters } from '@/content/narrative/chapters';
@@ -1050,50 +1051,100 @@ function makeAnimatedOrStatic(
 }
 
 function makeFallbackRoom(zone: ZoneDef | undefined): MapData {
-  const cols = Math.max(8, zone?.width ?? 18);
-  const rows = Math.max(6, zone?.height ?? 11);
+  const cols = Math.max(14, zone?.width ?? 22);
+  const rows = Math.max(10, zone?.height ?? 14);
+
+  // 모든 셀 wall 로 시작.
   const cells: string[][] = [];
   for (let y = 0; y < rows; y++) {
-    const row: string[] = [];
-    for (let x = 0; x < cols; x++) {
-      const isWall = x === 0 || y === 0 || x === cols - 1 || y === rows - 1;
-      row.push(isWall ? 'wall' : 'floor');
-    }
-    cells.push(row);
+    cells.push(new Array(cols).fill('wall'));
   }
-  // 출구 — 마지막 zone 이면 'exit', 아니면 'stairs-down'.
-  const exitTile = zone?.exitMode === 'escape' ? 'exit' : 'stairs-down';
-  cells[rows - 2]![cols - 2] = exitTile;
 
-  // zone 에 정의된 stalker 만 스폰. 없으면 비움.
+  // ROT.Map.Digger — 방 + 복도로 이뤄진 procedural dungeon.
+  // 같은 zone 사이즈여도 매 진입마다 새 시드로 다른 레이아웃이 나옴.
+  const digger = new ROT.Map.Digger(cols, rows, {
+    roomWidth: [3, 7],
+    roomHeight: [3, 5],
+    corridorLength: [2, 8],
+    dugPercentage: 0.35,
+  });
+  digger.create((x: number, y: number, contents: number) => {
+    if (x >= 0 && y >= 0 && x < cols && y < rows) {
+      const row = cells[y];
+      if (row) row[x] = contents === 0 ? 'floor' : 'wall';
+    }
+  });
+
+  const rooms = digger.getRooms();
+  const firstRoom = rooms[0];
+  const lastRoom = rooms[rooms.length - 1];
+
+  // Player 스폰 — 첫 방 중앙
+  const player = firstRoom
+    ? { x: firstRoom.getCenter()[0]!, y: firstRoom.getCenter()[1]! }
+    : { x: 2, y: 2 };
+
+  // 출구/계단 — 마지막 방 중앙. zone.exitMode 에 따라 'exit' 또는 'stairs-down'.
+  const exitTile = zone?.exitMode === 'escape' ? 'exit' : 'stairs-down';
+  if (lastRoom && lastRoom !== firstRoom) {
+    const ex = lastRoom.getCenter()[0]!;
+    const ey = lastRoom.getCenter()[1]!;
+    const row = cells[ey];
+    if (row) row[ex] = exitTile;
+  } else {
+    // 방이 하나뿐이면 코너에 박아둠.
+    const exRow = cells[rows - 2];
+    if (exRow) exRow[cols - 2] = exitTile;
+  }
+
+  // 추적자 — 가운데 방들에 분배 (첫 방 = 플레이어 스폰 / 마지막 방 = 출구 는 피함).
+  const middleRooms = rooms.length > 2 ? rooms.slice(1, rooms.length - 1) : rooms.slice(0, 1);
   const stalkers: Array<{ id: string; x: number; y: number }> = [];
-  let sx = cols - 3;
+  let stalkIdx = 0;
   for (const sp of zone?.stalkerSpawns ?? []) {
     for (let i = 0; i < sp.count; i++) {
-      stalkers.push({ id: sp.stalkerId, x: Math.max(2, sx), y: 2 });
-      sx = Math.max(2, sx - 2);
+      const room = middleRooms[stalkIdx % Math.max(1, middleRooms.length)];
+      if (room) {
+        stalkers.push({
+          id: sp.stalkerId,
+          x: room.getCenter()[0]!,
+          y: room.getCenter()[1]!,
+        });
+      }
+      stalkIdx++;
     }
   }
 
-  // zone 에 정의된 prop 을 가로로 흩뿌림 (탐색 가능하도록).
+  // 소품 — 가운데 방들 임의 위치에 흩뿌림.
   const propsArr: Array<{ id: string; x: number; y: number }> = [];
-  let px = 4;
-  const py = Math.min(rows - 3, 4);
+  let propIdx = 0;
+  const taken = new Set<string>();
   for (const ps of zone?.propSpawns ?? []) {
     for (let i = 0; i < ps.count; i++) {
-      if (px < cols - 2) {
-        propsArr.push({ id: ps.propId, x: px, y: py });
-        px += 2;
+      const room = middleRooms[propIdx % Math.max(1, middleRooms.length)] ?? firstRoom;
+      if (room) {
+        // 방 안 임의 좌표 — 다른 prop / stalker 와 겹치지 않게 몇 번 시도.
+        for (let attempt = 0; attempt < 10; attempt++) {
+          const xMin: number = room.getLeft();
+          const xMax: number = room.getRight();
+          const yMin: number = room.getTop();
+          const yMax: number = room.getBottom();
+          const px = xMin + Math.floor(ROT.RNG.getUniform() * (xMax - xMin + 1));
+          const py = yMin + Math.floor(ROT.RNG.getUniform() * (yMax - yMin + 1));
+          const k = `${px},${py}`;
+          if (!taken.has(k) && cells[py]?.[px] === 'floor') {
+            taken.add(k);
+            propsArr.push({ id: ps.propId, x: px, y: py });
+            break;
+          }
+        }
       }
+      propIdx++;
     }
   }
 
   return {
     cells,
-    spawns: {
-      player: { x: 2, y: 2 },
-      stalkers,
-      props: propsArr,
-    },
+    spawns: { player, stalkers, props: propsArr },
   };
 }

@@ -93,6 +93,11 @@ export class SceneManager {
   }
 
   private attachIntent(): void {
+    // 재진입 안전 — 이미 연결된 listener 가 있으면 먼저 떼어내서 leak 방지.
+    // 어떤 Scene 의 enter() 안에서 또 다른 Scene 을 push 하는 경우(예: 자동 안내방송이
+    // GameScene.enter() 끝에서 ReaderScene 을 push) 가 있어, 이 가드 없이는
+    // 같은 input listener 가 두 번 등록되어 키 입력이 중복/유실될 수 있음.
+    this.detachIntent();
     const scene = this.current();
     if (!scene?.onIntent) return;
     this.intentUnsub = this.ctx.input.onIntent((intent) => scene.onIntent!(intent));

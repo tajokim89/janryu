@@ -2,7 +2,7 @@
 // 슬롯 0~2. payload 는 임의 JSON 직렬화 가능 객체.
 // 게임 상태 직렬화는 game/ 레이어 책임. 이 모듈은 storage I/O 만.
 
-const NAMESPACE = 'retro-napolitan';
+const NAMESPACE = 'janryu';
 const SLOT_PREFIX = `${NAMESPACE}:save:`;
 
 export interface SaveMeta {

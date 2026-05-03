@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
-  base: process.env.VITE_BASE ?? '/2d-retro-boilerplate/',
+  base: process.env.VITE_BASE ?? '/janryu/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

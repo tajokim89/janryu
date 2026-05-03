@@ -103,7 +103,7 @@ IntroScene  →  MainMenuScene (새로시작 / 불러오기 / 환경설정 / 종
 
 ```
 npm install
-npm run dev          # http://localhost:5173 (자동 redirect to /2d-retro-boilerplate/)
+npm run dev          # http://localhost:5173 (자동 redirect to /janryu/)
 npm run build        # dist/ 정적 빌드
 npm run preview      # 빌드 결과 미리보기
 npm run typecheck    # tsc --noEmit

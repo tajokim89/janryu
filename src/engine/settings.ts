@@ -1,7 +1,7 @@
 // 사용자 설정. localStorage 영속.
 // 새 설정 추가: SettingsState 에 필드 추가, DEFAULTS 채우기, UI 에 노출.
 
-const KEY = 'retro-napolitan:settings';
+const KEY = 'janryu:settings';
 
 export interface SettingsState {
   masterVolume: number; // 0..1

@@ -26,7 +26,7 @@ export class MainMenuScene implements Scene {
     this.root.addChild(this.bg);
 
     this.title = new Text({
-      text: 'retro-napolitan',
+      text: '잔류',
       style: { fill: COLOR.accent, fontSize: 44, fontFamily: FONT_BODY, fontWeight: '700' },
     });
     this.title.anchor.set(0.5, 0);

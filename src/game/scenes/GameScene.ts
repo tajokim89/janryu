@@ -23,6 +23,7 @@ import type { Scene, SceneContext, Intent } from '@/engine';
 import { FONT_BODY, FONT_MONO, COLOR, VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from '@/engine';
 import { chapters } from '@/content/narrative/chapters';
 import { zonesForChapter } from '@/content/zones';
+import type { ZoneDef } from '@/content/zones';
 import {
   findStalker,
   findTile,
@@ -96,6 +97,7 @@ export class GameScene implements Scene {
   private detectionOverlay!: Graphics;
   private stalkerDetectRange = 4;
   private stalkerAggressive = false;
+  private hasStalker = false;
   private fov!: FovSystem;
   private narrative!: NarrativeSystem;
   private endingUnsub: (() => void) | null = null;
@@ -142,7 +144,7 @@ export class GameScene implements Scene {
     if (zone?.generator === 'authored' && zone.authoredMap) {
       mapData = await loadAuthoredMap(zone.authoredMap);
     }
-    if (!mapData) mapData = makeFallbackRoom();
+    if (!mapData) mapData = makeFallbackRoom(zone);
     this.cells = mapData.cells;
     this.playerX = mapData.spawns.player.x;
     this.playerY = mapData.spawns.player.y;
@@ -151,6 +153,9 @@ export class GameScene implements Scene {
       this.stalkerId = firstSpawn.id;
       this.stalkerX = firstSpawn.x;
       this.stalkerY = firstSpawn.y;
+      this.hasStalker = true;
+    } else {
+      this.hasStalker = false;
     }
     this.currentZoneId = zone?.id ?? '?';
 
@@ -178,6 +183,7 @@ export class GameScene implements Scene {
     );
     this.stalker.width = CELL;
     this.stalker.height = CELL;
+    this.stalker.visible = this.hasStalker;
     this.worldRoot.addChild(this.stalker);
 
     this.player = makeAnimatedOrStatic(ctx, 'player-idle-down', 'player-down-0');
@@ -357,7 +363,7 @@ export class GameScene implements Scene {
     // 자연스러운 wander 시야 잃기 트릭이 통하지 않음. 사물함/책상까지 추적해서 catch.
     // 단, 플레이어는 이동키로 빠져나가 도망칠 시간이 있음.
     const distance = Math.abs(this.playerX - this.stalkerX) + Math.abs(this.playerY - this.stalkerY);
-    const seen = this.state === 'spotted' || distance <= this.stalkerDetectRange;
+    const seen = this.hasStalker && (this.state === 'spotted' || distance <= this.stalkerDetectRange);
     this.state = 'hidden';
     this.ctx.events.emit('hideEnter', { entity: 0, tile: here });
     if (seen) {
@@ -448,6 +454,7 @@ export class GameScene implements Scene {
   // Stalker
   // ============================================================================
   private stepStalker(): void {
+    if (!this.hasStalker) return;
     // 추적자 진정 체크: 플레이어가 시야 밖으로 충분히 멀어지면 기본 모드 복귀.
     const distNow = Math.abs(this.playerX - this.stalkerX) + Math.abs(this.playerY - this.stalkerY);
     if (this.stalkerAggressive && distNow > this.stalkerDetectRange + 3) {
@@ -523,6 +530,7 @@ export class GameScene implements Scene {
   }
 
   private evaluateContact(): void {
+    if (!this.hasStalker) return;
     const distance = Math.abs(this.playerX - this.stalkerX) + Math.abs(this.playerY - this.stalkerY);
     if (this.state === 'hidden') {
       // aggressive 모드에서 추적자가 사물함 위에 올라옴 → 잡힘.
@@ -599,8 +607,8 @@ export class GameScene implements Scene {
     for (const p of this.propsOnMap) {
       p.sprite.visible = this.fov.isVisible(p.x, p.y);
     }
-    // 추적자 — 보이는 셀 위에서만 표시
-    this.stalker.visible = this.fov.isVisible(this.stalkerX, this.stalkerY);
+    // 추적자 — 보이는 셀 위에서만 표시 (추적자 없는 zone 이면 항상 숨김)
+    this.stalker.visible = this.hasStalker && this.fov.isVisible(this.stalkerX, this.stalkerY);
     // 시야 오버레이 갱신
     this.renderDetectionOverlay();
     // 플레이어는 항상 보임 (자기 자신)
@@ -609,6 +617,7 @@ export class GameScene implements Scene {
   private renderDetectionOverlay(): void {
     const o = this.gridOrigin();
     this.detectionOverlay.clear();
+    if (!this.hasStalker) return;
     if (!this.fov.isVisible(this.stalkerX, this.stalkerY)) return;
 
     const range = this.stalkerDetectRange;
@@ -981,9 +990,9 @@ function makeAnimatedOrStatic(
   return new Sprite(tex ?? undefined);
 }
 
-function makeFallbackRoom(): MapData {
-  const cols = 18;
-  const rows = 11;
+function makeFallbackRoom(zone: ZoneDef | undefined): MapData {
+  const cols = Math.max(8, zone?.width ?? 18);
+  const rows = Math.max(6, zone?.height ?? 11);
   const cells: string[][] = [];
   for (let y = 0; y < rows; y++) {
     const row: string[] = [];
@@ -993,11 +1002,39 @@ function makeFallbackRoom(): MapData {
     }
     cells.push(row);
   }
+  // 출구 — 마지막 zone 이면 'exit', 아니면 'stairs-down'.
+  const exitTile = zone?.exitMode === 'escape' ? 'exit' : 'stairs-down';
+  cells[rows - 2]![cols - 2] = exitTile;
+
+  // zone 에 정의된 stalker 만 스폰. 없으면 비움.
+  const stalkers: Array<{ id: string; x: number; y: number }> = [];
+  let sx = cols - 3;
+  for (const sp of zone?.stalkerSpawns ?? []) {
+    for (let i = 0; i < sp.count; i++) {
+      stalkers.push({ id: sp.stalkerId, x: Math.max(2, sx), y: 2 });
+      sx = Math.max(2, sx - 2);
+    }
+  }
+
+  // zone 에 정의된 prop 을 가로로 흩뿌림 (탐색 가능하도록).
+  const propsArr: Array<{ id: string; x: number; y: number }> = [];
+  let px = 4;
+  const py = Math.min(rows - 3, 4);
+  for (const ps of zone?.propSpawns ?? []) {
+    for (let i = 0; i < ps.count; i++) {
+      if (px < cols - 2) {
+        propsArr.push({ id: ps.propId, x: px, y: py });
+        px += 2;
+      }
+    }
+  }
+
   return {
     cells,
     spawns: {
       player: { x: 2, y: 2 },
-      stalkers: [{ id: 'late-pupil', x: cols - 3, y: 2 }],
+      stalkers,
+      props: propsArr,
     },
   };
 }

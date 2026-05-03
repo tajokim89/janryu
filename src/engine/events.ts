@@ -23,6 +23,8 @@ export interface EventMap {
   documentRead: { id: string };
   broadcastHeard: { id: string };
   signRead: { id: string };
+  // narrative 가 자동 재생을 요청한 안내방송 — GameScene 이 ReaderScene 을 push 해서 팝업으로 보여준다.
+  autoBroadcast: { id: string };
   flagSet: { id: string; value: boolean };
   // 자잘한 SFX 트리거
   step: { x: number; y: number };

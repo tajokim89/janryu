@@ -104,6 +104,7 @@ export class GameScene implements Scene {
   private endingUnsub: (() => void) | null = null;
   private codexUnsub: (() => void) | null = null;
   private messageUnsub: (() => void) | null = null;
+  private autoBroadcastUnsub: (() => void) | null = null;
   private playerFacing: 'down' | 'up' | 'left' | 'right' = 'down';
   private currentZoneId = '';
   private zoneIndex = 0;
@@ -208,6 +209,11 @@ export class GameScene implements Scene {
     this.messageUnsub = ctx.events.on('message', ({ text }) => {
       this.message.text = text;
     });
+    this.autoBroadcastUnsub = ctx.events.on('autoBroadcast', ({ id }) => {
+      const entry = findBroadcast(id);
+      if (!entry) return;
+      void this.ctx.manager.push(new ReaderScene({ kind: 'broadcast', entry }));
+    });
 
     // === Snapshot/Carry 복원 (있으면 위 기본값을 덮어씀) ===
     if (this.options.snapshot) {
@@ -220,6 +226,7 @@ export class GameScene implements Scene {
     this.recomputeFov();
     this.syncPlayer();
     this.syncStalker();
+    this.updateCamera();
     this.applyVisibility();
     this.layout();
     this.renderHud();
@@ -236,6 +243,7 @@ export class GameScene implements Scene {
     this.endingUnsub?.();
     this.codexUnsub?.();
     this.messageUnsub?.();
+    this.autoBroadcastUnsub?.();
     this.narrative.destroy();
     this.ctx.world.removeChild(this.worldRoot);
     this.ctx.ui.removeChild(this.uiRoot);
@@ -338,6 +346,7 @@ export class GameScene implements Scene {
     this.swapPlayerSprite(dx, dy);
     this.recomputeFov();
     this.syncPlayer();
+    this.updateCamera();
     this.applyVisibility();
     this.maybeAnnounceTile(nx, ny);
     this.evaluateContact();
@@ -710,10 +719,31 @@ export class GameScene implements Scene {
   // Build / sync
   // ============================================================================
   private gridOrigin(): { x: number; y: number } {
-    return {
-      x: Math.floor((VIRTUAL_WIDTH - this.cols * CELL) / 2),
-      y: Math.floor((VIRTUAL_HEIGHT - this.rows * CELL) / 2),
-    };
+    // 카메라 시스템이 worldRoot 자체를 이동시키므로 sprite 위치는 (0,0) 기준.
+    return { x: 0, y: 0 };
+  }
+
+  private updateCamera(): void {
+    const mapW = this.cols * CELL;
+    const mapH = this.rows * CELL;
+    let cx: number;
+    let cy: number;
+    if (mapW <= VIRTUAL_WIDTH) {
+      // 맵이 뷰포트보다 작으면 센터링.
+      cx = Math.floor((VIRTUAL_WIDTH - mapW) / 2);
+    } else {
+      // 큰 맵: 플레이어 중앙. 단, 맵 경계가 뷰포트 안쪽에 들어오지 않게 클램프.
+      const target = VIRTUAL_WIDTH / 2 - (this.playerX * CELL + CELL / 2);
+      cx = Math.max(VIRTUAL_WIDTH - mapW, Math.min(0, target));
+    }
+    if (mapH <= VIRTUAL_HEIGHT) {
+      cy = Math.floor((VIRTUAL_HEIGHT - mapH) / 2);
+    } else {
+      const target = VIRTUAL_HEIGHT / 2 - (this.playerY * CELL + CELL / 2);
+      cy = Math.max(VIRTUAL_HEIGHT - mapH, Math.min(0, target));
+    }
+    this.worldRoot.x = Math.round(cx);
+    this.worldRoot.y = Math.round(cy);
   }
 
   private buildTileSprites(): void {

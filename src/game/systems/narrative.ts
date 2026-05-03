@@ -178,13 +178,10 @@ export class NarrativeSystem {
         this.events.emit('ending', { id: eff.endingId });
         return;
       case 'playBroadcast': {
-        const bc = broadcasts.find((b) => b.id === eff.broadcastId);
-        if (!bc) return;
-        // 안내방송 본문을 메시지로 흘려 보냄. tone='warn' 으로 강조.
-        const text = `[${bc.source}]\n${bc.lines.join('\n')}`;
-        this.events.emit('message', { text, tone: 'warn' });
-        // broadcastHeard 사실 등록 — 후속 narrative 이벤트(코덱스 잠금해제 등) 가 연쇄 발화.
-        this.events.emit('broadcastHeard', { id: eff.broadcastId });
+        // GameScene 이 ReaderScene 을 push 해서 팝업으로 보여준다.
+        // ReaderScene.enter() 가 broadcastHeard 를 emit 하므로 후속 narrative 이벤트도 연쇄 발화.
+        if (!broadcasts.find((b) => b.id === eff.broadcastId)) return;
+        this.events.emit('autoBroadcast', { id: eff.broadcastId });
         return;
       }
       // 미구현 효과는 디버그 로그만.

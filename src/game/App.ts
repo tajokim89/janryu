@@ -44,6 +44,20 @@ export async function startApp(parent: HTMLElement): Promise<AppHandle> {
   sprites.registerProcedural('player-left-0', 0xfff2c2, 'P');
   sprites.registerProcedural('player-right-0', 0xfff2c2, 'P');
   await sprites.loadSpritesheet(`${import.meta.env.BASE_URL}assets/sprites/main.json`);
+  // processed/ 폴더의 개별 PNG 도 sprite 이름과 일치하면 자동 로드 (placeholder 덮음).
+  const individualNames = [
+    ...tiles.map((t) => t.sprite),
+    ...stalkers.map((s) => s.sprite),
+    ...props.map((p) => p.sprite),
+    'player-down-0',
+    'player-up-0',
+    'player-left-0',
+    'player-right-0',
+  ];
+  await sprites.loadIndividualTextures(
+    `${import.meta.env.BASE_URL}assets/sprites/processed/`,
+    individualNames,
+  );
 
   events.on('message', ({ text, tone }) => {
     console.info(`[${tone ?? 'info'}] ${text}`);

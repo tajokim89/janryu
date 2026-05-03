@@ -58,6 +58,31 @@ export class SpriteRegistry {
     this.textures.set(name, texture);
   }
 
+  /**
+   * `processed/` 폴더에 드롭한 개별 PNG 를 sprite 이름으로 자동 매칭.
+   * `${baseUrl}${name}.png` 가 존재하면 placeholder 위에 덮어씀.
+   * 존재하지 않는 이름은 조용히 스킵 (placeholder 유지).
+   */
+  async loadIndividualTextures(baseUrl: string, names: string[]): Promise<number> {
+    let loaded = 0;
+    const unique = Array.from(new Set(names));
+    await Promise.all(
+      unique.map(async (name) => {
+        const url = `${baseUrl}${name}.png`;
+        try {
+          const tex = await Assets.load<Texture>(url);
+          tex.source.scaleMode = 'nearest';
+          this.textures.set(name, tex);
+          loaded += 1;
+        } catch {
+          // 파일 없음 — placeholder 유지.
+        }
+      }),
+    );
+    if (loaded > 0) console.info(`[assets] loaded ${loaded} individual textures from ${baseUrl}`);
+    return loaded;
+  }
+
   get(name: string): Texture | null {
     return this.textures.get(name) ?? null;
   }

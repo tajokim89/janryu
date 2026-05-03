@@ -20,7 +20,7 @@
 
 import { AnimatedSprite, Container, Graphics, Sprite, Text } from 'pixi.js';
 import type { Scene, SceneContext, Intent } from '@/engine';
-import { FONT_BODY, FONT_MONO, COLOR, VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from '@/engine';
+import { FONT_BODY, FONT_MONO, COLOR, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, TILE_SIZE } from '@/engine';
 import { chapters } from '@/content/narrative/chapters';
 import { zonesForChapter } from '@/content/zones';
 import type { ZoneDef } from '@/content/zones';
@@ -52,7 +52,7 @@ export interface GameSceneOptions {
 
 type State = 'safe' | 'spotted' | 'hidden';
 
-const CELL = 16;
+const CELL = TILE_SIZE;
 const STALKER_TICK_MS = 700;
 const DETECT_RANGE = 4;
 const CATCH_RANGE = 1;

@@ -7,9 +7,9 @@
 
 import { Application, Container } from 'pixi.js';
 
-export const VIRTUAL_WIDTH = 320;
-export const VIRTUAL_HEIGHT = 200;
-export const TILE_SIZE = 16;
+export const VIRTUAL_WIDTH = 480;
+export const VIRTUAL_HEIGHT = 320;
+export const TILE_SIZE = 32;
 
 export interface RendererHandle {
   app: Application;

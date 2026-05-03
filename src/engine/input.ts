@@ -51,10 +51,18 @@ const KEY_TO_INTENT: Record<string, Intent> = {
 export type IntentListener = (intent: Intent) => void;
 
 export class Input {
+  // 이동 키 자동 반복 — 첫 발화 후 DELAY 대기, 그 후 INTERVAL 마다 반복.
+  // 너무 빠르면 칸 단위 게임이 휘리릭 흘러감. 200/100 이 손에 익는 균형점.
+  private static REPEAT_DELAY_MS = 200;
+  private static REPEAT_INTERVAL_MS = 100;
+
   private listeners = new Set<IntentListener>();
   private down = new Set<string>();
   private boundDown = this.onKeyDown.bind(this);
   private boundUp = this.onKeyUp.bind(this);
+  private repeatKey: string | null = null;
+  private repeatTimeout: number | null = null;
+  private repeatInterval: number | null = null;
 
   attach(target: Window | HTMLElement = window): void {
     target.addEventListener('keydown', this.boundDown as EventListener);
@@ -62,6 +70,7 @@ export class Input {
   }
 
   detach(target: Window | HTMLElement = window): void {
+    this.stopRepeat();
     target.removeEventListener('keydown', this.boundDown as EventListener);
     target.removeEventListener('keyup', this.boundUp as EventListener);
   }
@@ -76,7 +85,7 @@ export class Input {
    * 모든 listener 에게 즉시 전달.
    */
   trigger(intent: Intent): void {
-    for (const listener of this.listeners) listener(intent);
+    this.dispatch(intent);
   }
 
   isDown(key: string): boolean {
@@ -84,17 +93,52 @@ export class Input {
   }
 
   private onKeyDown(event: KeyboardEvent): void {
-    if (event.repeat) return;
+    if (event.repeat) return; // 브라우저 기본 반복 무시 — 자체 반복 사용.
     this.down.add(event.key);
     const intent = KEY_TO_INTENT[event.key];
     if (!intent) return;
     event.preventDefault();
-    for (const listener of this.listeners) {
-      listener(intent);
+    this.dispatch(intent);
+    // 이동 의도만 자동 반복. 상호작용·메뉴 같은 단발 의도는 한 번씩만 발화.
+    if (intent.kind === 'move') {
+      this.startRepeat(event.key, intent);
     }
   }
 
   private onKeyUp(event: KeyboardEvent): void {
     this.down.delete(event.key);
+    if (this.repeatKey === event.key) this.stopRepeat();
+  }
+
+  private dispatch(intent: Intent): void {
+    for (const listener of this.listeners) listener(intent);
+  }
+
+  private startRepeat(key: string, intent: Intent): void {
+    this.stopRepeat();
+    this.repeatKey = key;
+    // 첫 반복까지 짧게 대기 — 단발 입력이 의도였던 경우 자동반복 안 시작되도록.
+    this.repeatTimeout = window.setTimeout(() => {
+      this.repeatTimeout = null;
+      this.repeatInterval = window.setInterval(() => {
+        if (this.repeatKey !== key || !this.down.has(key)) {
+          this.stopRepeat();
+          return;
+        }
+        this.dispatch(intent);
+      }, Input.REPEAT_INTERVAL_MS);
+    }, Input.REPEAT_DELAY_MS);
+  }
+
+  private stopRepeat(): void {
+    if (this.repeatTimeout != null) {
+      clearTimeout(this.repeatTimeout);
+      this.repeatTimeout = null;
+    }
+    if (this.repeatInterval != null) {
+      clearInterval(this.repeatInterval);
+      this.repeatInterval = null;
+    }
+    this.repeatKey = null;
   }
 }

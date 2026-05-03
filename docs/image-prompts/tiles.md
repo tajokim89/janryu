@@ -1,72 +1,94 @@
-# 타일 프롬프트 — 학교 1층 야간 데모
+# 잔류 — 타일 프롬프트 (13종)
 
-<!-- direction -->
-## 작업 방향
-- **데모 톤**: 평범한 한국 학교의 1층 복도, 야간. 차가운 형광등 톤, 회녹색·바램색 그라데이션.
-- 16×16 px. 시점은 **탑뷰(top-down) 또는 약간의 3/4 view** 일관성 있게.
-- 핵심 타일 (이름은 `src/content/tiles.ts` 의 `sprite` 와 일치):
-  - `tile-floor` — 복도 리놀륨 / 교실 마룻바닥
-  - `tile-wall` — 시멘트 / 페인트 벽
-  - `tile-door` — 교실/사무실 문 (닫힘)
-  - `tile-locker` — 학생 사물함 (은신 가능)
-  - `tile-desk` — 책상 (밑이 어둡게 — 은신 가능)
-  - `tile-stairs-down` — 1층 계단 (다음 구역)
-  - `tile-exit` — 비상구 / 정문
+각 프롬프트는 README 의 **공통 스타일 베이스**를 앞에 붙여서 사용. 모든 타일은 16×16, 위에서 본 시점, **타일링 가능** (좌우상하로 이어져도 솔기 없음).
 
-<!-- prompt -->
-## 프롬프트 (영문)
+---
 
-### 복도 바닥
-```
-A 16x16 pixel art top-down dim school hallway floor tile, worn pale-green linoleum with faint scuff
-streaks, limited 12-color palette of cold grays and faded green, hard 1px outlines, no anti-aliasing,
-perfectly tileable on all four edges, late-night fluorescent feel, retro horror.
-```
+## tile-floor — 마른 바닥
+**Use:** 모든 구역 기본 보행 영역.
 
-### 벽
-```
-A 16x16 pixel art top-down school hallway wall tile, painted plaster with a darker gray dado below
-and faint scratches, limited 12-color palette, hard outlines, no anti-aliasing, perfectly tileable
-horizontally, slight darker shade on the bottom edge to suggest height. Transparent background.
-```
+> A 16×16 top-down floor tile of a worn Korean subway station: large gray-beige ceramic floor tiles with subtle scuff marks and faint grout lines. Slightly desaturated, mid-tone. Must seamlessly tile when repeated horizontally and vertically. No props, no debris, no edge highlights.
 
-### 교실 문
-```
-A 16x16 pixel art top-down classroom door tile (closed), brown wooden door with small frosted glass
-panel and metal handle, limited 12-color palette of warm browns against cool walls, hard outlines,
-no anti-aliasing, transparent background.
-```
+---
 
-### 학생 사물함 (은신 가능)
-```
-A 16x16 pixel art top-down vertical metal student locker tile, two narrow doors with vents and tiny
-combination dials, slightly ajar suggesting hide spot, limited 12-color palette of pale teal-green
-and chrome, hard outlines, no anti-aliasing, transparent background.
-```
+## tile-wall — 지하철 타일 벽
+**Use:** 비walkable 벽 (모든 구역 외곽).
 
-### 책상 (은신 가능)
-```
-A 16x16 pixel art top-down student desk tile viewed from above, wooden top with metal legs, dark
-hollow space underneath suggesting hide spot, limited 12-color palette, hard outlines, no anti-aliasing,
-transparent background.
-```
+> A 16×16 top-down view of a Korean subway station wall section. Cold steel-blue surface with horizontal lines suggesting old metro wall paneling. Flat lighting from above. Slight grime in the corners. Tile-able horizontally and vertically. No graffiti, no signs.
 
-### 계단 (하강)
-```
-A 16x16 pixel art top-down concrete staircase descending into darkness, viewed from directly above,
-limited 12-color palette, hard outlines, no anti-aliasing, dark interior fading to black at the lower
-steps, clearly readable as "going down". Transparent background.
-```
+---
 
-### 비상구
-```
-A 16x16 pixel art top-down emergency exit door tile with faint green EXIT sign above, dim lit, limited
-palette, hard outlines, no anti-aliasing, transparent background, retro horror feel.
-```
+## tile-pillar — 기둥
+**Use:** 기둥 (못 지나감, 시야 차단).
 
-## 한국어 한 줄
+> A 16×16 top-down view of a square station pillar from above. Solid concrete-gray with subtle vertical seam suggesting structural ribbing. Slight shadow halo on the lower side hinting at depth. Slightly darker than `tile-wall`. Stand-alone tile (does not need to tile-repeat).
 
-```
-한국 학교 1층 야간 복도 환경 타일 7종 (바닥/벽/교실문/학생사물함/책상/계단/비상구). 16x16 픽셀, 탑뷰,
-차가운 회녹색-바램색 12색 팔레트, 1px 외곽선, anti-aliasing 없음, 타일링 가능, 투명 배경.
-```
+---
+
+## tile-ticket-gate — 개찰구
+**Use:** 개찰구 라인 (walkable, 시각만).
+
+> A 16×16 top-down view of a Korean subway turnstile / fare gate from above. Two parallel matte black panels with a narrow walkable gap between them. Slight metallic highlight on the upper edges. Yellow caution stripe on the floor between them. Tile-able along the horizontal axis (so a row of gates lines up).
+
+---
+
+## tile-sealed-door — 출구 통제문 (내려와 있음)
+**Use:** 비walkable. 셔터가 천장에서 내려와 있는 출구.
+
+> A 16×16 top-down view of a metal roll-down shutter door, currently pulled fully closed. Heavy ribbed steel surface in cold gray-blue. A faint amber sliver at the very bottom suggesting it sealed only moments ago. No handle, no signage. Slightly more imposing than a regular wall.
+
+---
+
+## tile-wet-floor — 살짝 젖은 바닥
+**Use:** 마른 바닥 위에 물이 살짝 묻은 자국. 보행 가능.
+
+> A 16×16 top-down floor tile: same gray-beige station floor as `tile-floor` but covered in a thin reflective sheen of water. Subtle dark patches where water pools in the grout. Faint reflection of overhead fluorescent light, warped. Must tile seamlessly. No footprints (those are a separate prop).
+
+---
+
+## tile-shallow-water — 발목까지 찬 물
+**Use:** 보행 가능. 1~2구역 침수 진행 표현.
+
+> A 16×16 top-down view of standing dark water about ankle-deep over a barely-visible tile floor. Dark blue `#1a2030` surface with subtle ripple highlights. The faint outline of submerged floor tiles is just visible underneath. Must tile seamlessly. No bubbles, no debris.
+
+---
+
+## tile-flooded — 가득 찬 물
+**Use:** 비walkable. 물이 차서 더 못 들어가는 영역.
+
+> A 16×16 top-down view of deep stagnant black water completely covering whatever was below. Almost opaque dark blue-black surface with very subtle ripple texture. A single warped reflection sliver of fluorescent light in the upper-left. Heavier and darker than `tile-shallow-water`. Tile-able.
+
+---
+
+## tile-station-room — 역무실 안
+**Use:** 은신 가능. 좁은 어두운 공간.
+
+> A 16×16 top-down view of the inside of a small station office: dark linoleum floor, edges of a desk just visible, warm but very dim incandescent light. Slightly warmer palette than the rest of the station. Feels enclosed and cramped. No staff visible. Tile-able vertically (multiple rows form a deeper room).
+
+---
+
+## tile-pillar-corner — 기둥 뒤 그늘
+**Use:** 은신 가능. 기둥 옆 어두운 각.
+
+> A 16×16 top-down floor tile partially shadowed by an unseen pillar above-left: half normal `tile-floor` gray-beige, half deep shadow gradient (hard-edged, no soft AA). The shadowed half should be very dark blue-gray. Stand-alone (does not tile).
+
+---
+
+## tile-platform-edge — 승강장 끝선
+**Use:** 비walkable. 선로와의 경계. 노란 경고선.
+
+> A 16×16 top-down view of a Korean subway platform edge from above: top half is rough textured yellow caution strip with raised tactile bumps, bottom half is the dark void of the track recess (almost pure `#0a0b0f`). The transition is hard-edged. Tile-able horizontally (forms a long platform edge).
+
+---
+
+## tile-stairs-down — 내려가는 계단
+**Use:** 다음 zone 으로 진행.
+
+> A 16×16 top-down view of station stairs going downward: a series of horizontal step lines receding into shadow at the lower portion of the tile. Cold concrete gray. The lower edge fades almost to black, suggesting depth below. A faint warm light at the very bottom. Stand-alone tile.
+
+---
+
+## tile-exit — 지상 출구
+**Use:** 최종 탈출 (4구역 escape).
+
+> A 16×16 top-down view of subway exit stairs going UP toward street level: a series of horizontal step lines ascending toward the top of the tile, with the upper portion bathed in pale moonlit blue-gray suggesting the surface is just above. A faint vertical bar of rain-streaked outdoor light at the top edge. Stand-alone tile.

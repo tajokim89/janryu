@@ -89,6 +89,11 @@ export class NarrativeSystem {
   recordFact(fact: string): void {
     if (this.facts.has(fact)) return;
     this.facts.add(fact);
+    // 새 zone 진입 시 turnCount 리셋 — turnGte 가 "이 zone 안에서 N턴" 으로 동작.
+    // 그래서 이전 zone 에서 누적된 턴 때문에 새 zone 진입 즉시 자동 이벤트가 터지지 않음.
+    if (fact.startsWith('enterZone:')) {
+      this.turnCount = 0;
+    }
     this.evaluate();
   }
 

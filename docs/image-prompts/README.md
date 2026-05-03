@@ -1,62 +1,64 @@
-# 이미지 프롬프트 가이드
+# 잔류 — Image Prompts
 
-`docs/image-prompts/` 안의 MD 파일들은 **AI 에이전트(Claude CoWork, ChatGPT, SD)에게 픽셀 아트를 시킬 때** 그대로 복사해서 쓸 수 있는 프롬프트 템플릿입니다.
+이 폴더의 프롬프트는 잔류의 픽셀아트 자산을 일관된 톤으로 생성하기 위한 템플릿. ChatGPT (DALL·E 3) / Stable Diffusion / PixelLab / Aseprite 워크플로우 모두에 호환.
 
-이 보일러플레이트의 **데모 콘텐츠는 "한국 학교 1층 야간자습 이후"** 호러 톤입니다. 프롬프트도 그 톤에 맞춰 작성되어 있습니다 — 포크 후 자기 게임 톤으로 자유롭게 교체하세요.
+## 사용 방법
 
-## 워크플로우
+1. 아래 **공통 스타일 베이스** 를 모든 프롬프트 앞에 붙여서 생성.
+2. 1024×1024 또는 512×512 로 생성된 이미지를 Aseprite 로 가져와 16×16 (큰 prop 은 32×32) 로 다운스케일 + 픽셀 클린업.
+3. 모든 frame 을 하나의 spritesheet 로 묶어 export.
+4. `public/assets/sprites/main.png` + `public/assets/sprites/main.json` (Aseprite Hash 포맷) 에 드롭.
+5. **frame name 이 콘텐츠 ID 와 일치하면 SpriteRegistry 가 자동으로 매칭** — placeholder 가 진짜 자산으로 덮임.
 
-```
-1. 프롬프트 템플릿 선택  →  2. 이미지 생성 (ChatGPT/SD 등)
-                            ↓
-3. Aseprite 로 슬라이스/정리 (Claude CoWork 위임 가능)
-                            ↓
-4. spritesheet + JSON export  →  public/assets/sprites/main.json + main.png
-                            ↓
-5. 새로고침. 같은 frame 이름은 자동으로 진짜 텍스처가 placeholder 를 덮어씀.
-```
+## Frame name 규칙
 
-## 공통 스타일 가이드 (현재 데모 기준)
-
-| 항목 | 기본값 |
-|---|---|
-| 타일 사이즈 | 16 × 16 px |
-| 캐릭터 사이즈 | 16 × 24 (머리 위로 살짝 길게) |
-| 시점 | **탑뷰(top-down) 또는 약간의 3/4 view** — 한 작품 안에서 통일 |
-| 팔레트 크기 | 12~16색 (차가운 회녹색·바램색 베이스 + 한두 개의 절제된 액센트) |
-| 외곽선 | 픽셀 단색 외곽선, anti-aliasing 없음 |
-| 그림자 | 단색 hard drop shadow (캐릭터/추적자) |
-| 톤 | **차분하고 낡고 차가움.** 화려한 RPG 색감 X. 형광 색 X. 야간 형광등 분위기. |
-
-## 파일별 가이드
-
-- [`tiles.md`](./tiles.md) — 학교 1층 환경 타일 (바닥/벽/교실문/사물함/책상/계단/비상구)
-- [`stalkers.md`](./stalkers.md) — 추적자: 늦은 학생 / 조용한 교사
-- [`props.md`](./props.md) — 손전등/학생증/메모/칠판/교내방송기/표지판
-- [`player.md`](./player.md) — 무기 없는 평범한 학생 (4방향 × idle 2 + walk 4)
-- [`ui.md`](./ui.md) — 패널 프레임, 게이지, 메시지 로그 텍스처
-
-## frame 이름 컨벤션 (반드시 준수)
-
-| 종류 | 패턴 | 예시 |
+| 카테고리 | 규칙 | 예시 |
 |---|---|---|
-| 타일 | `tile-<id>` | `tile-floor`, `tile-wall`, `tile-locker` |
-| 추적자 | `stalker-<id>` (또는 `-<dir>-<n>`) | `stalker-late-pupil`, `stalker-silent-teacher` |
-| 소품 | `prop-<id>` | `prop-flashlight`, `prop-pa-radio` |
-| 플레이어 | `player-<dir>-<n>` | `player-down-0`, `player-up-0` |
+| 타일 | `tile-{id}` | `tile-floor`, `tile-wet-floor` |
+| 플레이어 (정적) | `player-{dir}-0` | `player-down-0`, `player-up-0` |
+| 플레이어 (애니메이션) | frame tag `player-idle-{dir}` | `player-idle-down` |
+| 추적자 | `stalker-{id}` 또는 frame tag `stalker-{id}-idle` | `stalker-wet-silhouette` |
+| 소품 | `prop-{id}` | `prop-info-board`, `prop-flashlight` |
 
-`src/content/*.ts` 의 `sprite` 필드 값과 정확히 일치해야 자동 매칭됩니다.
+---
 
-## Claude CoWork 사용 팁
+## 공통 스타일 베이스
 
-- "이 프롬프트 그대로 SD/ComfyUI 에 넣어서 N장 뽑아줘" — 가능
-- "Aseprite 열어서 이 이미지 16×16 / 16×24 그리드로 슬라이스해줘" — 가능
-- "spritesheet json (Hash 포맷, 파일명 main.json) 으로 export 해줘" — 가능
+**모든 프롬프트 앞에 그대로 붙여서 사용 — 일관된 톤을 위해 필수.**
 
-각 MD 파일의 **`<!-- prompt -->`** 섹션이 그대로 복사할 부분, **`<!-- direction -->`** 은 사람이 작업 방향 잡을 때 참조용입니다.
+> **Style:** 2D pixel art for a top-down 3/4 perspective horror exploration game. Hard-edged pixels, no anti-aliasing, no glow, no outline shading. Limited muted palette only.
+>
+> **Setting:** A derelict Korean late-1990s subway station at midnight. Heavy rain outside, partial interior flooding. Dim flickering fluorescent lights. Empty platforms. Liminal, uncanny, subdued horror — no jump scares, no gore, no explicit violence. The atmosphere is wrongness and absence, not shock.
+>
+> **Palette (strict, do not stray):**
+> - Background near-black `#0a0b0f`
+> - Walls / metal: cold steel blue `#3a4150`
+> - Floor: warm gray-beige `#5a544a`
+> - Highlights: warm off-white `#e8e4d8`
+> - Water / reflective: dark blue `#1a2030`
+> - Danger / emergency only: dull red `#d56b5b`
+>
+> **AVOID:** anime faces, smiling characters, cute proportions, neon, glowing outlines, anti-aliased gradients, modern subway logos, English signage, bright saturated colors, blood splatter, dismembered bodies, pentagrams, generic Western horror clichés.
 
-## 컨셉 보존을 위한 가이드
+---
 
-- **무기/전투 그림 금지.**
-- **추적자 디자인은 모호하게.** 명찰·계급장·뚜렷한 얼굴 X.
-- **풍부한 색감 X.** 12~16색 절제된 팔레트가 호러 톤에 더 잘 맞습니다.
+## 파일별
+
+- [`tiles.md`](./tiles.md) — 환경 타일 13종 (바닥/벽/물/계단/문/기둥)
+- [`player.md`](./player.md) — 플레이어 4방향 + idle 애니메이션
+- [`stalkers.md`](./stalkers.md) — 추적자 3종
+- [`props.md`](./props.md) — 소품 8종 (전광판·메모·손전등 등)
+- (`ui.md` — UI 자산. 톤 굳어진 후 작성 — 현재 보류)
+
+---
+
+## 사이즈 가이드
+
+| 자산 | 최종 크기 | 생성 권장 크기 |
+|---|---|---|
+| 일반 타일 | 16×16 | 512×512 → 16×16 |
+| 큰 prop (전광판/창) | 32×32 | 1024×1024 → 32×32 |
+| 플레이어 | 16×16 | 512×512 → 16×16 |
+| 추적자 | 16×16 | 512×512 → 16×16 |
+
+타일은 반드시 **반복(타일링) 가능**하게 만들 것 — 같은 타일이 좌우상하로 이어져도 솔기가 안 보여야 함.
